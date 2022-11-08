@@ -9,9 +9,11 @@
 
 ## 1.2 `cd.Jenkinsfile`
 * `cd.Jenkinsfile`为单程序部署使用的Jenkinsfile。
-* Jenkins 任务命令规范：环境_产品线_HELM-APP-NAME;
+* Jenkins 任务命名规范：环境_产品线_HELM-APP-NAME;
 
 ## 1.3 `ci.Jenkinsfile`
+流程是将 git 仓库的代码（内含 Dockerfile）拉下来，推送到专用 docker build 机器构建，然后将镜像上传至 harbor
+* Jenkins 任务命名规范：环境_产品线_HELM-APP-NAME;
 
 # 2. 批量更新脚本使用
 `config.txt`列表内容示例(可过滤`bak-config.txt`内容编辑整理)：

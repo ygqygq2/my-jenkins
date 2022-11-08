@@ -38,12 +38,33 @@ pipeline {
     // REPLICAS = "1"  // 部署的k8s pod副本数, 已由jenkins界面传入
   }
 
+  parameters {
+    string(defaultValue: 'https://github.com/ygqygq2/fastdfs-nginx.git', description: '要 build 镜像的 git 地址',
+        name: 'CODE_GIT_URL', trim: true)
+    string(defaultValue: 'master', description: '要 build 镜像的 git 分支',
+        name: 'CODE_GIT_BRANCH', trim: true)
+    choice(name: 'UNITTEST', choices: 'true\nfalse', description: '是否单元测试')
+    choice(name: 'SONARSCAN', choices: 'true\nfalse', description: '是否 sonar 扫描')
+    string(defaultValue: '1', description: 'pod副本数',
+        name: 'REPLICAS', trim: true)
+    string(defaultValue: '5.0.5', description: 'mdb chart 模板版本',
+        name: 'CHART_VERSION', trim: true)
+    choice(name: 'ACTION', choices: 'deploy\nrollback', description: '选择Helm动作')
+  }
+
   tools {
     maven "maven3.6.1"
   }
 
   stages {
-    
+    stage('Get App Name') {
+      steps {
+        script {
+          env.APP_NAME = env.JOB_NAME.split('_')[-1];
+        }
+      }
+    }  
+
     stage('Get version') {
       steps {
         script {
@@ -102,6 +123,8 @@ pipeline {
             rm -rf code-dir
             """
           echo  "########################拉取代码完成########################"
+
+          // 将代码推送到专用构建机器（主要是解决普通机器不能联网问题）
           def remote = [:]
           remote.name = "build_host"
           remote.host = "xx.xx.xx.xx"
