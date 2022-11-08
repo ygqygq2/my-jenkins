@@ -12,7 +12,7 @@ helm_result="/tmp/helm_result.txt"
 helm_result_md="/tmp/helm_result.md"
 deploy_result="/tmp/deploy_result.txt"
 deploy_result_md="/tmp/deploy_result.md"
-helm_repo_name="ygqygq2"
+helm_repo_name="mdb"
 thread=1 # 此处定义线程数
 faillog="./failure.log" # 此处定义失败列表,注意失败列表会先被删除再重新写入
 #git pull
