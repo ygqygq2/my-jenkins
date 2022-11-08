@@ -1,6 +1,11 @@
 # 1. 说明
 * 此目录下包含应用的helm charts values.yaml文件 ; 
-* 文件命名规则：`HELM-APP-NAME-values.yaml`;
+* helm value 文件命名规则：`HELM-APP-NAME-values.yaml`;
+
+环境：
+* jenins
+* git
+* harbor 2.4
 
 ## 1.1 `Jenkinsfile`
 `Jenkinsfile`为批量部署的Jenkins所使用的Jenkinsfile。其内调用的是下文 2 中的批量更新脚本。
