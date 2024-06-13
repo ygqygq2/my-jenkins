@@ -1,1 +1,1 @@
-demo uat ygqygq2/mdb 5.0.5 1 nginx latest
+demo uat ygqygq2/mdb 5.0.6 1 nginx latest

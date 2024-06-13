@@ -7,12 +7,12 @@ SH_DIR=`pwd`
 ME=$0
 PARAMETERS=$*
 config_file="${1:-/tmp/helm_config.txt}"
-update_file="/tmp/prd.md"
+update_file="/tmp/update.md"
 helm_result="/tmp/helm_result.txt"
 helm_result_md="/tmp/helm_result.md"
 deploy_result="/tmp/deploy_result.txt"
 deploy_result_md="/tmp/deploy_result.md"
-helm_repo_name="mdb"
+helm_repo_name="ygqygq2"
 thread=1 # 此处定义线程数
 faillog="./failure.log" # 此处定义失败列表,注意失败列表会先被删除再重新写入
 #git pull
@@ -20,26 +20,26 @@ faillog="./failure.log" # 此处定义失败列表,注意失败列表会先被�
 #定义输出颜色函数
 function red_echo () {
 #用法:  red_echo "内容"
-        local what="$*"
-        echo -e "$(date +%F-%T) \e[1;31m ${what} \e[0m"
+    local what="$*"
+    echo -e "$(date +%F-%T) \e[1;31m ${what} \e[0m"
 }
 
 function green_echo () {
 #用法:  green_echo "内容"
-        local what="$*"
-        echo -e "$(date +%F-%T) \e[1;32m ${what} \e[0m"
+    local what="$*"
+    echo -e "$(date +%F-%T) \e[1;32m ${what} \e[0m"
 }
 
 function yellow_echo () {
 #用法:  yellow_echo "内容"
-        local what="$*"
-        echo -e "$(date +%F-%T) \e[1;33m ${what} \e[0m"
+    local what="$*"
+    echo -e "$(date +%F-%T) \e[1;33m ${what} \e[0m"
 }
 
 function blue_echo () {
 #用法:  blue_echo "内容"
-        local what="$*"
-        echo -e "$(date +%F-%T) \e[1;34m ${what} \e[0m"
+    local what="$*"
+    echo -e "$(date +%F-%T) \e[1;34m ${what} \e[0m"
 }
 
 function twinkle_echo () {

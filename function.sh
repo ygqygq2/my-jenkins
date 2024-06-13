@@ -1,26 +1,26 @@
 #定义输出颜色函数
 function red_echo () {
 #用法:  red_echo "内容"
-        local what="$*"
-        echo -e "$(date +%F-%T) \e[1;31m ${what} \e[0m"
+    local what="$*"
+    echo -e "$(date +%F-%T) \e[1;31m ${what} \e[0m"
 }
 
 function green_echo () {
 #用法:  green_echo "内容"
-        local what="$*"
-        echo -e "$(date +%F-%T) \e[1;32m ${what} \e[0m"
+    local what="$*"
+    echo -e "$(date +%F-%T) \e[1;32m ${what} \e[0m"
 }
 
 function yellow_echo () {
 #用法:  yellow_echo "内容"
-        local what="$*"
-        echo -e "$(date +%F-%T) \e[1;33m ${what} \e[0m"
+    local what="$*"
+    echo -e "$(date +%F-%T) \e[1;33m ${what} \e[0m"
 }
 
 function blue_echo () {
 #用法:  blue_echo "内容"
-        local what="$*"
-        echo -e "$(date +%F-%T) \e[1;34m ${what} \e[0m"
+    local what="$*"
+    echo -e "$(date +%F-%T) \e[1;34m ${what} \e[0m"
 }
 
 function twinkle_echo () {
@@ -44,10 +44,10 @@ function return_error_exit () {
     [ $? -eq 0 ] && local REVAL="0"
     local what=$*
     if [ "$REVAL" = "0" ];then
-            [ ! -z "$what" ] && { echo -n "$*" && green_echo "成功" ; }
+        [ ! -z "$what" ] && { echo -n "$*" && green_echo "成功" ; }
     else
-            red_echo "$* 失败，脚本退出"
-            exit 1
+        red_echo "$* 失败，脚本退出"
+        exit 1
     fi
 }
 

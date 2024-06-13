@@ -19,101 +19,10 @@ thread=5 # 此处定义线程数
 faillog="./failure.log" # 此处定义失败列表,注意失败列表会先被删除再重新写入
 echo >> $config_file
 
-HELM_REPO="https://charts.linuxba.com/speed-up"
+HELM_REPO="https://ygqygq2.github.io/charts/speed-up"
 HELM_REPO_NAME="ygqygq2"
 
-#定义输出颜色函数
-function red_echo () {
-#用法:  red_echo "内容"
-        local what="$*"
-        echo -e "\e[1;31m ${what} \e[0m"
-}
-
-function green_echo () {
-#用法:  green_echo "内容"
-        local what="$*"
-        echo -e "\e[1;32m ${what} \e[0m"
-}
-
-function yellow_echo () {
-#用法:  yellow_echo "内容"
-        local what="$*"
-        echo -e "\e[1;33m ${what} \e[0m"
-}
-
-function blue_echo () {
-#用法:  blue_echo "内容"
-        local what="$*"
-        echo -e "\e[1;34m ${what} \e[0m"
-}
-
-function twinkle_echo () {
-#用法:  twinkle_echo $(red_echo "内容")  ,此处例子为红色闪烁输出
-    local twinkle='\e[05m'
-    local what="${twinkle} $*"
-    echo -e "${what}"
-}
-
-function return_echo () {
-    if [ $? -eq 0 ]; then
-        echo -n "$(date +%F-%T) $*" && green_echo "成功"
-        return 0
-    else
-        echo -n "$(date +%F-%T) $*" && red_echo "失败"
-        return 1
-    fi
-}
-
-function return_error_exit () {
-    [ $? -eq 0 ] && local REVAL="0"
-    local what=$*
-    if [ "$REVAL" = "0" ];then
-            [ ! -z "$what" ] && { echo -n "$*" && green_echo "成功" ; }
-    else
-            red_echo "$* 失败，脚本退出"
-            exit 1
-    fi
-}
-
-#定义确认函数
-function user_verify_function () {
-    while true;do
-        echo ""
-        read -p "是否确认?[Y/N]:" Y
-        case $Y in
-            [yY]|[yY][eE][sS])
-                echo -e "answer:  \\033[20G [ \e[1;32m是\e[0m ] \033[0m"
-                break
-                ;;
-            [nN]|[nN][oO])
-                echo -e "answer:  \\033[20G [ \e[1;32m否\e[0m ] \033[0m"
-                exit 1
-                ;;
-            *)
-                continue
-        esac
-    done
-}
-
-#定义跳过函数
-function user_pass_function () {
-    while true;do
-        echo ""
-        read -p "是否确认?[Y/N]:" Y
-        case $Y in
-            [yY]|[yY][eE][sS])
-                echo -e "answer:  \\033[20G [ \e[1;32m是\e[0m ] \033[0m"
-                break
-                ;;
-            [nN]|[nN][oO])
-                echo -e "answer:  \\033[20G [ \e[1;32m否\e[0m ] \033[0m"
-                return 1
-                ;;
-            *)
-                continue
-        esac
-    done
-}
+. $SH_DIR/function.sh
 
 function helm_check() {
     if [ ! -f "~.helm/repository/repositories.yaml" ]; then
