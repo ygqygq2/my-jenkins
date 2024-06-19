@@ -19,11 +19,11 @@ metadata:
     jenkins-role: k8s-slave
 spec:
   containers:
-  - name: helm   
+  - name: helm
     image: ygqygq2/k8s-alpine:latest
     command:
     - cat
-    tty: true   
+    tty: true
 """
     }
   }
@@ -32,7 +32,7 @@ spec:
     // 全局环境变量
     KUBECONFIG = credentials('kubeconfig')
     REGISTRY_SECRET_NAME = ""
-  }  
+  }
 
   parameters {
     string(defaultValue: 'harbor.k8snb.com', description: '镜像源仓库地址',
@@ -53,7 +53,7 @@ spec:
               /bin/bash jenkins_deploy.sh config.txt "${ACTION}"
             """
           }
-        }          
+        }
       }
     }
   }
