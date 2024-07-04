@@ -39,7 +39,9 @@ spec:
     KUBE_NAMESPACE = "uat"  // 部署在k8s中的namespace名
     HELM_REPO = "https://charts.linuxba.com/speed-up"  // harbor charts仓库
     HELM_REPO_NAME = "ygqygq2"  // charts仓库名
-    
+    SRC_HARBOR_CRE = credentials('harbor_devuser')  // 源harbor用户密码
+    DEST_HARBOR_CRE = credentials('harbor_devuser')  // 目标harbor用户密码
+    // SKOPEO_ARGS = "--src-tls-verify=false --dest-tls-verify=false"
   }
 
   parameters {
