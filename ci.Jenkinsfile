@@ -31,7 +31,7 @@ pipeline {
     //CHART_VERSION = "3.0.0"  // chart模板版本，此处不定义，由Jenkins界面参数传入
     KUBE_NAMESPACE = "dev"  // 部署在k8s中的namespace名
     HELM_VERSION = "v3.1.2"  // 记录使用的helm版本信息
-    HELM_REPO="http://harbor.k8snb.com/chartrepo/pub"  // harbor charts仓库
+    HELM_REPO="http://harbor.ygqygq2.com/chartrepo/charts"  // harbor charts仓库
     HELM_REPO_NAME = "mdb"  // charts仓库名
     HELM_GIT_URL = "http://github.com/ygqygq2/my-jenkins.git"  // helm应用git仓库地址
     HELM_GIT_BRANCH = "master"  // helm应用git仓库分支
@@ -63,7 +63,7 @@ pipeline {
           env.APP_NAME = env.JOB_NAME.split('_')[-1];
         }
       }
-    }  
+    }
 
     stage('Get version') {
       steps {
@@ -92,7 +92,7 @@ pipeline {
                 LATEST_TAG=$LATEST_TAG; echo \${LATEST_TAG##*_}|awk '{print int(\$1)}' """,
                 returnStdout: true).trim()
             INCREASE=Integer.parseInt(CURRENT_INCREASE) + 1
-            INCREASE=sh(script: """#!/bin/sh -e\n 
+            INCREASE=sh(script: """#!/bin/sh -e\n
                 INCREASE=$INCREASE; printf "%.3d" \$INCREASE """, returnStdout: true).trim()
             env.NEW_TAG=env.VERSION + "_" + INCREASE
           }
@@ -109,12 +109,12 @@ pipeline {
         script{
           echo  "########################开始拉取代码########################"
           dir("${WORKSPACE}/code-dir") {
-            checkout([$class: 'GitSCM', 
-              branches: [[name: "${env.CODE_GIT_BRANCH}"]], 
-              doGenerateSubmoduleConfigurations: false, 
-              extensions: [], 
-              gitTool: 'Default', 
-              submoduleCfg: [], 
+            checkout([$class: 'GitSCM',
+              branches: [[name: "${env.CODE_GIT_BRANCH}"]],
+              doGenerateSubmoduleConfigurations: false,
+              extensions: [],
+              gitTool: 'Default',
+              submoduleCfg: [],
               userRemoteConfigs: [[url: "${env.CODE_GIT_URL}",credentialsId: 'gitlab',]]
             ])
           }
@@ -143,7 +143,7 @@ pipeline {
         }
       }
     }
-      
+
     stage('Sonar scan') {
       steps {
         script {
@@ -162,7 +162,7 @@ pipeline {
         }
       }
     }
-    
+
     stage('Unit test'){
       steps {
         script {
@@ -175,7 +175,7 @@ pipeline {
                 echo "sonartest"
               """
             }
-            
+
             echo "########################单元测试完成########################"
           } else {
             echo "#######################未进行单元测试#######################"
@@ -189,7 +189,7 @@ pipeline {
         node {
           label "harbor"
         }
-      }        
+      }
       steps {
         script {
           echo "#######################开始生成镜像#######################"
@@ -277,10 +277,10 @@ pipeline {
                   ${CHART_NAME}-${CHART_VERSION}/ \
                   || echo -e "When Error: UPGRADE FAILED: ${APP_NAME} has no deployed releases\n" \
                   "use command [ helm uninstall ${APP_NAME} ] to uninstall it."
-                   
+
               else
                 # dev环境用的hostNetwork=true，先删除再部署
-                helm uninstall "$APP_NAME" --namespace="$KUBE_NAMESPACE"              
+                helm uninstall "$APP_NAME" --namespace="$KUBE_NAMESPACE"
                 eval helm upgrade "${APP_NAME}" --reuse-values --install \
                   --namespace "$KUBE_NAMESPACE" \
                   --set image.registry="${HARBOR_URL}" \
@@ -290,7 +290,7 @@ pipeline {
                   --force \
                   ${CHART_NAME}-${CHART_VERSION}/
               fi
-              
+
               kubectl rollout status -n "$KUBE_NAMESPACE" -w "deployment/${APP_NAME}-${CHART_NAME}" \
                 || kubectl rollout status -n "$KUBE_NAMESPACE" -w "statefulset/${APP_NAME}-${CHART_NAME}" \
                 || kubectl rollout status -n "$KUBE_NAMESPACE" -w "deployment/${APP_NAME}" \
@@ -312,4 +312,3 @@ pipeline {
     }
   }
 }
-

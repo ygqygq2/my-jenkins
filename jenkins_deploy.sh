@@ -13,7 +13,8 @@ action="${2:-deploy}"
 # REGISTRY_SECRET_NAME=""
 # DEST_HARBOR_URL=""
 # DEST_HARBOR_REGISTRY="dev"  # 调试所用
-dest_repo="${DEST_HARBOR_URL}/${DEST_HARBOR_REGISTRY}" # 包含仓库项目的名字
+dest_registry="${DEST_HARBOR_REGISTRY:-library}"
+dest_repo="${DEST_HARBOR_URL}/${dest_registry}" # 包含仓库项目的名字
 thread=5                # 此处定义线程数
 faillog="./failure.log" # 此处定义失败列表,注意失败列表会先被删除再重新写入
 echo >>$config_file
@@ -38,49 +39,97 @@ function helm_check() {
 function check_image() {
     local image_name=$1
     local image_tag=$2
+    local encoded
+    encoded=$(curl -s -o /dev/null -w %{url_effective} --get --data-urlencode "$image_name" "http://localhost")
+    # 移除前缀部分，只保留编码后的结果
+    encoded=$(echo $encoded | sed 's@http://localhost/?@@')
     curl -s -i --connect-timeout 10 -m 20 -u "$DEST_HARBOR_CRE_USR:$DEST_HARBOR_CRE_PSW" -k -X GET \
         -H "accept: application/json" \
-        "http://$DEST_HARBOR_URL/api/v2.0/projects/$dest_registry/repositories/$image_name/artifacts/$image_tag/tags?page=1&page_size=10&with_signature=f
-alse&with_immutable_status=false'" |
+        "https://$DEST_HARBOR_URL/api/v2.0/projects/$dest_registry/repositories/$encoded/artifacts/$image_tag/tags?page=1&page_size=10&with_signature=false&with_immutable_status=false" |
         grep '"name":' >/dev/null
-    [ $? -eq 0 ] && return 0 || return 1
+    return $?
+}
+
+function check_skopeo() {
+    command -v skopeo &>/dev/null
+}
+
+function check_docker() {
+    command -v docker &>/dev/null
+}
+
+function skopeo_sync_image() {
+    local line=$1
+    local image_name=$2
+    local image_tag=$3
+    skopeo copy -a \
+        --src-creds=${SRC_HARBOR_CRE_USR}:${SRC_HARBOR_CRE_PSW} \
+        --dest-creds=${DEST_HARBOR_CRE_USR}:${DEST_HARBOR_CRE_PSW} \
+        ${SKOPEO_ARGS} \
+        docker://${line} \
+        docker://$dest_repo/$image_name:$image_tag
+    return $?
+}
+
+function docker_login() {
+    echo "${SRC_HARBOR_CRE_PSW}" | docker login --username "${SRC_HARBOR_CRE_USR}" --password-stdin $SRC_HARBOR_URL
+    echo "${DEST_HARBOR_CRE_PSW}" | docker login --username "${DEST_HARBOR_CRE_USR}" --password-stdin $DEST_HARBOR_URL
+}
+
+function docker_sync_image() {
+    local line=$1
+    local image_name=$2
+    local image_tag=$3
+    check_docker
+    if [ $? -ne 0 ]; then
+        yellow_echo "没有 docker 命令"
+        return 1
+    fi
+    docker pull $line &&
+        docker tag $line $dest_repo/$image_name:$image_tag &&
+        docker push $dest_repo/$image_name:$image_tag &&
+        docker rmi $line &&
+        docker rmi $dest_repo/$image_name:$image_tag ||
+        {
+            red_echo "同步镜像[ $line ]"
+            echo "$line" | tee -a $faillog
+        }
 }
 
 function sync_image() {
     local line=$*
+    local image_name
+    local image_tag
     line=$(echo "$line" | sed 's@docker.io/@@g')
     if [[ ! -z $(echo "$line" | grep '/') ]]; then
         case $dest_registry in
-        basic)
-            local image_name=$(echo $line | awk -F':|/' '{print $(NF-2)"/"$(NF-1)}')
+        basic|library)
+            image_name=$(echo $line | awk -F':|/' '{print $(NF-2)"/"$(NF-1)}')
             ;;
         *)
-            local image_name=$(echo $line | awk -F':|/' '{print $(NF-1)}')
+            image_name=$(echo $line | awk -F':|/' '{print $(NF-1)}')
             ;;
         esac
         if [[ ! -z $(echo "$image_name" | grep -w "$dest_registry") ]]; then
-            local image_name=$(basename $image_name)
+            image_name=$(basename $image_name)
         fi
     else
-        local image_name=$(echo ${line%:*})
+        image_name=$(echo ${line%:*})
     fi
-    local image_tag=$(echo $line | awk -F: '{print $2}')
+    image_tag=$(echo $line | awk -F: '{print $2}')
     check_image $image_name $image_tag
     return_echo "检测镜像 [$image_name] 存在 "
     if [ $? -ne 0 ]; then
         echo
         yellow_echo "同步镜像[ $line ]"
-        docker pull $SRC_HARBOR_URL/$SRC_HARBOR_REGISTRY/$image_name:$image_tag &&
-            docker tag $SRC_HARBOR_URL/$SRC_HARBOR_REGISTRY/$image_name:$image_tag $dest_repo/$image_name:$image_tag &&
-            docker push $dest_repo/$image_name:$image_tag &&
-            docker rmi $SRC_HARBOR_URL/$SRC_HARBOR_REGISTRY/$image_name:$image_tag &&
-            docker rmi $dest_repo/$image_name:$image_tag ||
-            {
-                red_echo "同步镜像[ $line ]"
-                echo "$line" | tee -a $faillog
-            }
+        if [ "$have_skopeo" -eq 0 ]; then
+            skopeo_sync_image "$line" "$image_name" "$image_tag" || docker_sync_image "$line" "$image_name" "$image_tag"
+        else
+            docker_sync_image "$line" "$image_name" "$image_tag"
+        fi
     else
         green_echo "已存在镜像，不需要推送[$dest_repo/$image_name:$image_tag]"
+        return 0
     fi
 }
 
@@ -95,7 +144,7 @@ function deploy() {
     local image_tag=$7
 
     ######################### 同步镜像 ########################
-    # sync_image ${image_url}:${image_tag}
+    sync_image ${image_url}:${image_tag}
     ###########################################################
 
     ################# 检查 helm chart目录是否存在 ##############
@@ -233,7 +282,7 @@ function multi_process() {
     filename=$config_file
     exec 5<$filename
     while read line <&5; do
-        excute_line=$(echo $line | egrep -v "^#")
+        excute_line=$(echo "$line" | grep -E -v "^#")
         if [ -z "$excute_line" ]; then
             continue
         fi
@@ -262,6 +311,11 @@ function multi_process() {
     fi
 }
 
+check_skopeo
+have_skopeo=$?
+if [ "$have_skopeo" -ne 0 ]; then
+    docker_login
+fi
 helm_check
 multi_process
 

@@ -39,18 +39,19 @@ spec:
     KUBE_NAMESPACE = "uat"  // 部署在k8s中的namespace名
     HELM_REPO = "https://charts.linuxba.com/speed-up"  // harbor charts仓库
     HELM_REPO_NAME = "ygqygq2"  // charts仓库名
+    
   }
 
   parameters {
-    // string(defaultValue: 'harbor.k8snb.com', description: '镜像源仓库地址',
-    //     name: 'SRC_HARBOR_URL', trim: true)
-    // choice(name: 'SRC_HARBOR_REGISTRY', choices: 'uat', description: '选择镜像源仓库')
-    string(defaultValue: 'registry.cn-shenzhen.aliyuncs.com', description: '镜像目标仓库地址',
+    string(defaultValue: 'harbor.ygqygq2.com', description: '镜像源仓库地址',
+        name: 'SRC_HARBOR_URL', trim: true)
+    choice(name: 'SRC_HARBOR_REGISTRY', choices: 'uat', description: '选择镜像源仓库')
+    string(defaultValue: 'harbor.ygqygq2.com', description: '镜像目标仓库地址',
         name: 'DEST_HARBOR_URL', trim: true)
-    choice(name: 'DEST_HARBOR_REGISTRY', choices: 'ygqygq2', description: '选择镜像目标仓库')
+    choice(name: 'DEST_HARBOR_REGISTRY', choices: 'pre', description: '选择镜像目标仓库')
     string(defaultValue: '1', description: 'pod副本数',
         name: 'REPLICAS', trim: true)
-    string(defaultValue: '5.0.5', description: 'mdb chart 模板版本',
+    string(defaultValue: '5.0.7', description: 'mdb chart 模板版本',
         name: 'CHART_VERSION', trim: true)
     string(defaultValue: 'latest', description: '镜像 tag',
         name: 'TAG', trim: true)
@@ -63,7 +64,7 @@ spec:
         script {
           env.APP_NAME = env.JOB_NAME.split('_')[-1];
           sh """
-            echo "$APP_NAME $DEST_HARBOR_REGISTRY $CHART_NAME $CHART_VERSION $REPLICAS $SRC_HARBOR_URL/$DEST_HARBOR_REGISTRY/$APP_NAME $TAG" > _config.txt
+            echo "$APP_NAME $DEST_HARBOR_REGISTRY $CHART_NAME $CHART_VERSION $REPLICAS $SRC_HARBOR_URL/$SRC_HARBOR_REGISTRY/$APP_NAME $TAG" > _config.txt
           """
         }
       }
