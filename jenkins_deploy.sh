@@ -199,6 +199,16 @@ function deploy() {
     if [[ "$helm_status" == "failed" ]]; then
         helm uninstall "$helm_name" -n $namespace
     fi
+    # 先判断是否已运行相同tag的应用
+    old_image_repository=$(helm get values "${APP_NAME}" -n "$KUBE_NAMESPACE" -ojson \
+      | jq ".image.repository"|sed 's@"@@g')
+    old_image_tag=$(helm get values "${APP_NAME}" -n "$KUBE_NAMESPACE" -ojson \
+      | jq ".image.tag"|sed 's@"@@g')
+    if [[ "$image_repository" == "$old_image_repository" ]] && \
+        [[ "$image_tag" == "${old_image_tag}" ]]; then
+        values_option="$values_option --set podAnnotations.restart=$(date +%F-%H-%M)"
+    fi
+
     if [[ -z "$(helm list -q -n $namespace | egrep "^${APP_NAME}$")" ]]; then
         helm upgrade --install \
             --atomic \
