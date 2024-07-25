@@ -169,6 +169,7 @@ function deploy() {
     fi
 
     if [ ! -d "$chart_dir" ]; then
+        [ -d "$chart_name" ] && mv $chart_name /tmp/$chart_name-$(date +%F-%T)
         helm pull --untar $helm_chart --version=$helm_chart_version
         return_echo "helm pull --untar $helm_chart --version=$helm_chart_version"
         [ $? -ne 0 ] && return 1 || mv $chart_name $chart_dir
@@ -217,7 +218,6 @@ function deploy() {
             --set image.repository="${image_repository}" \
             --set image.tag="${image_tag}" \
             --set replicaCount="$replicas" \
-            --force \
             $values_option \
             $docker_registry_option \
             "$helm_name" \
@@ -229,7 +229,6 @@ function deploy() {
             --set image.repository="${image_repository}" \
             --set image.tag="${image_tag}" \
             --set replicaCount="$replicas" \
-            --force \
             $values_option \
             $docker_registry_option \
             "$helm_name" \
