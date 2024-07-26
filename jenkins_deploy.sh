@@ -196,43 +196,53 @@ function deploy() {
         image_registry=$DEST_HARBOR_URL
     fi
 
-    helm_status=$(helm list -n $namespace | egrep "^${APP_NAME}[[:space:]]" | awk '{print $8}')
+    # 检查 Helm Release 是否存在并获取状态
+    helm_status=$(helm list -n "$KUBE_NAMESPACE" -f "^${APP_NAME}$" | awk 'NR==2 {print $8}')
+    
+    # 如果 Helm Release 存在且状态为 failed，则卸载
     if [[ "$helm_status" == "failed" ]]; then
-        helm uninstall "$helm_name" -n $namespace
+        helm uninstall "$APP_NAME" -n "$KUBE_NAMESPACE"
+        helm_status=""
     fi
-    # 先判断是否已运行相同tag的应用
-    old_image_repository=$(helm get values "${APP_NAME}" -n "$KUBE_NAMESPACE" -ojson \
-      | jq ".image.repository"|sed 's@"@@g')
-    old_image_tag=$(helm get values "${APP_NAME}" -n "$KUBE_NAMESPACE" -ojson \
-      | jq ".image.tag"|sed 's@"@@g')
-    if [[ "$image_repository" == "$old_image_repository" ]] && \
-        [[ "$image_tag" == "${old_image_tag}" ]]; then
-        values_option="$values_option --set podAnnotations.restart=$(date +%F-%H-%M)"
-    fi
-
-    if [[ -z "$(helm list -q -n $namespace | egrep "^${APP_NAME}$")" ]]; then
+    
+    # 检查 Helm Release 是否存在
+    if [[ -n "$helm_status" ]]; then
+        # 获取 Helm Release 的值
+        helm_values=$(helm get values "$APP_NAME" -n "$KUBE_NAMESPACE" -ojson 2>/dev/null)
+        
+        # 提取旧的 image.repository 和 image.tag
+        old_image_repository=$(echo "$helm_values" | jq -r ".image.repository")
+        old_image_tag=$(echo "$helm_values" | jq -r ".image.tag")
+    
+        # 判断是否已运行相同 tag 的应用
+        if [[ "$image_repository" == "$old_image_repository" ]] && [[ "$image_tag" == "$old_image_tag" ]]; then
+            values_option="$values_option --set podAnnotations.restart=$(date +%F-%H-%M)"
+        fi
+    
+        # 执行 Helm upgrade
+        helm upgrade --install \
+            --namespace="$KUBE_NAMESPACE" \
+            --set image.registry="${image_registry}" \
+            --set image.repository="${image_repository}" \
+            --set image.tag="${image_tag}" \
+            --set replicaCount="$replicas" \
+            $values_option \
+            $docker_registry_option \
+            "$APP_NAME" \
+            "$chart_dir/"
+    else
+        # 执行 Helm install
         helm upgrade --install \
             --atomic \
-            --namespace="$namespace" \
+            --namespace="$KUBE_NAMESPACE" \
             --set image.registry="${image_registry}" \
             --set image.repository="${image_repository}" \
             --set image.tag="${image_tag}" \
             --set replicaCount="$replicas" \
             $values_option \
             $docker_registry_option \
-            "$helm_name" \
-            $chart_dir/
-    else
-        helm upgrade --reuse-values --install \
-            --namespace="$namespace" \
-            --set image.registry="${image_registry}" \
-            --set image.repository="${image_repository}" \
-            --set image.tag="${image_tag}" \
-            --set replicaCount="$replicas" \
-            $values_option \
-            $docker_registry_option \
-            "$helm_name" \
-            $chart_dir/
+            "$APP_NAME" \
+            "$chart_dir/"
     fi
 
     kubectl rollout status -n "${namespace}" -w "deployment/${helm_name}-${chart_name}" ||
