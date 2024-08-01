@@ -100,7 +100,8 @@ function sync_image() {
     local line=$*
     local image_name
     local image_tag
-    line=$(echo "$line" | sed 's@docker.io/@@g')
+    line=$(echo "$line" | sed 's@docker.io/@@')
+    line=$(echo "$line" | sed "s@$DEST_HARBOR_URL/$DEST_HARBOR_REGISTRY@$SRC_HARBOR_URL/$SRC_HARBOR_REGISTRY@")
     if [[ ! -z $(echo "$line" | grep '/') ]]; then
         case $dest_registry in
         basic|library)
